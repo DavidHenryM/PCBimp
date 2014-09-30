@@ -6,7 +6,9 @@ Created on Tue Sep 30 20:50:53 2014
 """
 
 import numpy as np
-from scipy.sparse import coo_matrix
+from scipy import sparse as sp
+from scipy.sparse.linalg import spsolve
+
 
 def process_matrix(G1,ev):
     #initialise node numbering
@@ -48,7 +50,7 @@ def process_matrix(G1,ev):
                             Ar[Ainc]=e;
                             Ac[Ainc]=f;
                             Ad[Ainc]=Ad[Ainc]-1;
-    
+
                         #Process nodes
                         Ar[Ainc]=e;
                         Ac[Ainc]=f;
@@ -80,8 +82,8 @@ def process_matrix(G1,ev):
     
     #Load node equation data into sparse matrix
     n=np.size(np.nonzero(Ac)[0])
-    A=coo_matrix((Ad,(Ar,Ac)),shape=(max(Ar)+1,max(Ac)+1))
-    A=A.todense()
+    A=sp.csr_matrix((Ad,(Ar,Ac)),shape=(max(Ar)+1,max(Ac)+1))
+#    A=A.todense()
     #Initialise matricies for diagonal line
     #Populate diagonal
     RC=np.r_[0:node]
@@ -90,10 +92,12 @@ def process_matrix(G1,ev):
     #    DiagD[r]=4;
     #Add diagonal values
     #D=coo_matrix(DiagD,(RC,RC))
-    D=coo_matrix(np.identity(node+1)*4)
+    D=sp.csr_matrix(np.identity(node+1)*4)
     A=A+D
     #Perform node voltage equation
-    v=np.linalg.solve(A,b)
+    v=spsolve(A,b)
+#    v=np.linalg.solve(A,b)
+#    v=A/b
     Q=np.zeros((Grow,Gcol))
     #Process node voltage matrix cell by cell
     for r in range(0,Grow):
@@ -107,4 +111,61 @@ def process_matrix(G1,ev):
      #Set node voltage
             else:
                 Q[r,c]=v[(G1[r,c])]
-    return Q, node
+    return Q, node, A, v
+    
+def trace_values(Q,ev,E,u):
+    Von=0
+    Grow=Q.shape[0]
+    Gcol=Q.shape[1]
+    #Perform column summation of outer "Von" node voltages neglecting corners
+    for c in range(3,Gcol-2+1):
+        for r in range(2,Grow-1+1,Grow-3):
+     #Set values adjacent to corners to 0.5
+            if c==3 or c==Gcol-2:
+                Von=Von+(Q[r,c]/2);
+                #D[r,c]=0.5;
+            else:
+                Von=Von+Q[r,c];
+                #D[r,c]=1;
+    
+    #Perform row summation of outer "Von" node voltages neglecting corners
+    for r in range(3,Grow-2+1):
+        for c in range(2,Gcol-1+1,Gcol-3):
+    #Set values adjacent to corners to 0.5
+            if r==3 or r==Grow-2:
+                Von=Von+(Q[r,c]/2);
+                #D[r,c]=0.5;
+            else:
+                Von=Von+Q[r,c];
+                #D[r,c]=1;
+    Vin=0;
+    #Perform column summation of inner "Vin" node voltages neglecting corners
+    for c in range(4,Gcol-3+1):
+        for r in range(3,Grow-2+1,Grow-5):
+    #Set values adjacent to corners to 0.5
+            if c==4 or c==Gcol-3:
+                Vin=Vin+(Q[r,c]/2);
+                #D[r,c]=-0.5;
+            else:
+                Vin=Vin+Q[r,c];
+                #D[r,c]=-1;
+    #Perform row summation of inner "Vin" node voltages neglecting corners
+    for r in range(4,Grow-3+1):
+        for c in range(3,Gcol-2+1,Gcol-5):
+    #Set values adjacent to corners to 0.5
+            if r==4 or r==Grow-3:
+                Vin=Vin+(Q[r,c]/2);
+                #D[r,c]=-0.5;
+            else:
+                Vin=Vin+Q[r,c];
+                #D[r,c]=-1;
+    #Calculate charge
+    q=E*(Vin-Von);
+    #Calculate capacitance
+    C=q/ev;
+    #Calculate characteristic impedance
+    Z0=(np.sqrt(u*E))/C
+    #Calculate inductance using a different method to check above value
+    L=C*Z0**2;
+    
+    return q,C,Z0,L

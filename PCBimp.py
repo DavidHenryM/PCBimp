@@ -7,7 +7,7 @@ Created on Fri Sep 26 09:01:24 2014
 
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.sparse import coo_matrix
+from scipy.sparse import csr_matrix
 import FDM as fdm
 
 nodes=20
@@ -46,13 +46,8 @@ vp=1/(np.sqrt(u*E));
 ev=10;
 #Resolution of Quadrant in Rows
 #GrowMat=[10, 26, 50, 100, 250, 500, 1000];
-GrowMat=[20]
-C=np.zeros((1,np.size(GrowMat)))
-CpF=np.zeros((1,np.size(GrowMat)))
-L=np.zeros((1,np.size(GrowMat)))
-LnH=np.zeros((1,np.size(GrowMat)))
-L2=np.zeros((1,np.size(GrowMat)))
-Z0=np.zeros((1,np.size(GrowMat)))
+GrowMat=[100]
+
 nodes=np.zeros((1,np.size(GrowMat)))
 
 for t in range(0,np.size(GrowMat)):
@@ -63,7 +58,7 @@ for t in range(0,np.size(GrowMat)):
     #Initialise geometry matrix
     G1=np.zeros((Grow,Gcol))
     # Conductor height in quadrant in terms of rows
-    Cq=2*Grow*Ch/H;
+    Cq=Grow*Ch/H;
     #Matrix G2
 #    G2=np.zeros((Grow,Gcol))
 
@@ -77,99 +72,26 @@ for t in range(0,np.size(GrowMat)):
     G1[(Grow/2)-(Cq/2):(Grow/2)+(Cq/2),(Gcol-1)/2] = -2
     #Populate geometry matrix for nodes
     
-    Q, node =fdm.process_matrix(G1,ev)
-    
-#    loop_iter=1;
-    #Copy top left quadrant voltages across horizontal mirror
-#    Q[Grow:,:Gcol]=(Q[:Grow-1,:Gcol])[::-1,:]
-    #Copy left half voltages across vertical mirror
-#    Q[:,Gcol-1:]=(Q[:,:Gcol])[:,::-1]
-#    for r in range(Grow,Qrow):
-#        for c in range(0,Gcol):
-#            Q[r,c]=Q[Grow-1-loop_iter,c];
-#    
-#        loop_iter=loop_iter+1;
-#    
-#    loop_iter=1;
-#    #Copy left half voltages across vertical mirror
-#    for r in range(0,Qrow):
-#        for c in range(Gcol+1,Qcol):
-#            Q[r,c]=Q[r,Gcol-loop_iter];
-#            loop_iter=loop_iter+1;
-#        loop_iter=1;
-    
-    #used to verify Von and Vin summations
-    #D=np.zeros(Qrow,Qcol);
-    Von=0;
-    #Perform column summation of outer "Von" node voltages neglecting corners
-    for c in range(3,Gcol-2+1):
-        for r in range(2,Grow-1+1,Grow-3):
-     #Set values adjacent to corners to 0.5
-            if c==3 or c==Gcol-2:
-                Von=Von+(Q[r,c]/2);
-                #D[r,c]=0.5;
-            else:
-                Von=Von+Q[r,c];
-                #D[r,c]=1;
-    
-    #Perform row summation of outer "Von" node voltages neglecting corners
-    for r in range(3,Grow-2+1):
-        for c in range(2,Gcol-1+1,Gcol-3):
-    #Set values adjacent to corners to 0.5
-            if r==3 or r==Grow-2:
-                Von=Von+(Q[r,c]/2);
-                #D[r,c]=0.5;
-            else:
-                Von=Von+Q[r,c];
-                #D[r,c]=1;
-    Vin=0;
-    #Perform column summation of inner "Vin" node voltages neglecting corners
-    for c in range(4,Gcol-3+1):
-        for r in range(3,Grow-2+1,Grow-5):
-    #Set values adjacent to corners to 0.5
-            if c==4 or c==Gcol-3:
-                Vin=Vin+(Q[r,c]/2);
-                #D[r,c]=-0.5;
-            else:
-                Vin=Vin+Q[r,c];
-                #D[r,c]=-1;
-    #Perform row summation of inner "Vin" node voltages neglecting corners
-    for r in range(4,Grow-3+1):
-        for c in range(3,Gcol-2+1,Gcol-5):
-    #Set values adjacent to corners to 0.5
-            if r==4 or r==Grow-3:
-                Vin=Vin+(Q[r,c]/2);
-                #D[r,c]=-0.5;
-            else:
-                Vin=Vin+Q[r,c];
-                #D[r,c]=-1;
-    #Calculate charge
-    q=E*(Vin-Von);
-    #Calculate capacitance
-    C[t]=q/ev;
-    #Scale capacitance to pico farads
-    CpF[t]=C[t]*1e12;
-    #Calculate characteristic impedance
-    Z0[t]=(np.sqrt(u*E))/C[t];
+    Q, node, A,v = fdm.process_matrix(G1,ev)
+    q,C,Z0,L = fdm.trace_values(Q,ev,E,u)
+
     #Calculate inductance
 #    L[t]=(1/(vp*np.sqrt(C[t])))^2
-    #Calculate inductance using a different method to check above value
-    L2[t]=C[t]*Z0[t]**2;
-    #Scale inductance to nano henrys
-    LnH[t]=L[t]*1e9;
+
     #Add current node value to node matrix
     nodes[t]=node;
     #Print results of calculations
     print('Resolution of 1 Quadrant\n= %i Rows\n\n')%(Grow);
-    print('Quantity of Quadrant Nodes\n= %i Nodes\n\n')%(nodes[t]);
-    print('Capacitance per unit length\n= %.2f pF\n\n')%(CpF[t]);
-    print('Inductance per unit length\n= %.2f nH\n\n')%(LnH[t]);
-    print('Characteristic Impedance\n= %.2f Ohms\n\n\n\n')%(Z0[t]);
+    print('Quantity of Quadrant Nodes\n= %i Nodes\n\n')%(nodes);
+    print('Capacitance per unit length\n= %.2f F\n\n')%(C);
+    print('Inductance per unit length\n= %.2f H\n\n')%(L);
+    print('Characteristic Impedance\n= %.2f Ohms\n\n\n\n')%(Z0);
     #Display contour plot
     plt.figure(t);
     a=[1,2,3,4,5,6,7,8,9,10];
-    plt.contourf(Q,a);
-    plt.title(['Equipotentials at 1 Volt Interval ', str(nodes[t]),' Quadrant Nodes']);
+    plt.contourf(Q,a)
+    title='Equipotentials at 1 Volt Interval '+(str(int(nodes[t][0])))+' Quadrant Nodes'
+    plt.title(title)
     plt.xlabel('Matrix Column');
     plt.ylabel('Matrix Row')
     plt.xlim((0,Gcol-1))
