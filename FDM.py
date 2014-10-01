@@ -2,7 +2,7 @@
 """
 Created on Tue Sep 30 20:50:53 2014
 
-@author: david.moorhouse
+@author: David Moorhouse
 """
 
 import numpy as np
@@ -166,6 +166,25 @@ def trace_values(Q,ev,E,u):
     #Calculate characteristic impedance
     Z0=(np.sqrt(u*E))/C
     #Calculate inductance using a different method to check above value
-    L=C*Z0**2;
+    L=C*Z0**2
     
     return q,C,Z0,L
+    
+def geometry_matrix(geometry,Grow,Gcol,trace_width_cells,trace_spacing_cells):
+    #Initialise geometry matrix
+    G1=np.zeros((Grow,Gcol))
+    if geometry == 'stripline':
+        #Populate geometry matrix for conductor and ground
+        G1[0,:] = -1
+        G1[Grow-1,:] = -1
+        G1[np.round((Grow/2))+1,np.round(((Gcol/2))-
+        (trace_width_cells/2)):np.round(((Gcol/2))+(trace_width_cells/2))] = -2
+    elif geometry == 'edge coupled stripline':
+        #Populate geometry matrix for conductor and ground
+        G1[0,:] = -1
+        G1[Grow-1,:] = -1
+        G1[np.round((Grow/2))+1,np.round(((Gcol/2))-trace_width_cells-
+        (trace_spacing_cells/2)):np.round(((Gcol/2))-(trace_spacing_cells/2))] = -2
+        G1[np.round((Grow/2))+1,np.round(((Gcol/2))+(trace_spacing_cells/2)):
+            np.round(((Gcol/2))+trace_width_cells+(trace_spacing_cells/2))] = -2
+    return G1
