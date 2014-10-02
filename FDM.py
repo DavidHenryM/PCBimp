@@ -40,7 +40,9 @@ def process_matrix(G1,ev):
                     f=G1[x,y];
     #Process cells that fall on the conductor
                     if G1[x,y] == -2:
-                        b[(G1[r,c])]=b[(G1[r,c])]+ev;
+                        b[(G1[r,c])]=b[(G1[r,c])]+ev
+                    elif G1[x,y] == -3:
+                        b[(G1[r,c])]=b[(G1[r,c])]-ev
     #Do nothing with ground cells
                     elif G1[x,y] == -1:
                         pass
@@ -64,21 +66,23 @@ def process_matrix(G1,ev):
                     f=G1[x,y];
         #Process cells that fall on the conductor            
                     if G1[x,y]== -2:
-                        b[(G1[r,c])]=b[(G1[r,c])]+ev;
+                        b[(G1[r,c])]=b[(G1[r,c])]+ev
+                    elif G1[x,y]== -3:
+                        b[(G1[r,c])]=b[(G1[r,c])]-ev
         #Do nothing with ground cells
                     elif G1[x,y]== -1:
                         pass
         #Process nodes that are in the final column only
                     else:
                         if c==Gcol:
-                            Ar[Ainc]=e;
-                            Ac[Ainc]=f;
-                            Ad[Ainc]=Ad[Ainc]-1;
+                            Ar[Ainc]=e
+                            Ac[Ainc]=f
+                            Ad[Ainc]=Ad[Ainc]-1
                         #Process nodes
-                        Ar[Ainc]=e;
-                        Ac[Ainc]=f;
-                        Ad[Ainc]=Ad[Ainc]-1;
-                        Ainc=Ainc+1;
+                        Ar[Ainc]=e
+                        Ac[Ainc]=f
+                        Ad[Ainc]=Ad[Ainc]-1
+                        Ainc=Ainc+1
     
     #Load node equation data into sparse matrix
     n=np.size(np.nonzero(Ac)[0])
@@ -104,10 +108,12 @@ def process_matrix(G1,ev):
         for c in range(0,Gcol):
     #Set conductor voltage
             if G1[r,c]== -2:
-                Q[r,c]=ev;
+                Q[r,c]=ev
+            elif G1[r,c]== -3:
+                Q[r,c]=-ev
     #Set ground voltage
             elif G1[r,c]== -1:
-                Q[r,c]=0;
+                Q[r,c]=0
      #Set node voltage
             else:
                 Q[r,c]=v[(G1[r,c])]
@@ -117,52 +123,58 @@ def trace_values(Q,ev,E,u):
     Von=0
     Grow=Q.shape[0]
     Gcol=Q.shape[1]
-    #Perform column summation of outer "Von" node voltages neglecting corners
-    for c in range(3,Gcol-2+1):
-        for r in range(2,Grow-1+1,Grow-3):
-     #Set values adjacent to corners to 0.5
-            if c==3 or c==Gcol-2:
-                Von=Von+(Q[r,c]/2);
-                #D[r,c]=0.5;
-            else:
-                Von=Von+Q[r,c];
-                #D[r,c]=1;
     
-    #Perform row summation of outer "Von" node voltages neglecting corners
-    for r in range(3,Grow-2+1):
-        for c in range(2,Gcol-1+1,Gcol-3):
-    #Set values adjacent to corners to 0.5
-            if r==3 or r==Grow-2:
-                Von=Von+(Q[r,c]/2);
-                #D[r,c]=0.5;
-            else:
-                Von=Von+Q[r,c];
-                #D[r,c]=1;
-    Vin=0;
-    #Perform column summation of inner "Vin" node voltages neglecting corners
-    for c in range(4,Gcol-3+1):
-        for r in range(3,Grow-2+1,Grow-5):
-    #Set values adjacent to corners to 0.5
-            if c==4 or c==Gcol-3:
-                Vin=Vin+(Q[r,c]/2);
-                #D[r,c]=-0.5;
-            else:
-                Vin=Vin+Q[r,c];
-                #D[r,c]=-1;
-    #Perform row summation of inner "Vin" node voltages neglecting corners
-    for r in range(4,Grow-3+1):
-        for c in range(3,Gcol-2+1,Gcol-5):
-    #Set values adjacent to corners to 0.5
-            if r==4 or r==Grow-3:
-                Vin=Vin+(Q[r,c]/2);
-                #D[r,c]=-0.5;
-            else:
-                Vin=Vin+Q[r,c];
-                #D[r,c]=-1;
+    Von = np.sum(Q[1,1:(Gcol/2)-1]) + np.sum(Q[Grow-2,1:(Gcol/2)-1]) + np.sum(Q[2:Grow-3,1])
+    + np.sum(Q[2:Grow-3,(Gcol/2)-1]) 
+    Vin = np.sum(Q[2,2:(Gcol/2)-2]) + np.sum(Q[Grow-3,2:(Gcol/2)-2]) + np.sum(Q[3:Grow-4,2]) 
+    + np.sum(Q[3:Grow-4,(Gcol/2)-2]) 
+ 
+#   #Perform column summation of outer "Von" node voltages neglecting corners
+#    for c in range(2,Gcol-2):
+#        for r in [1,Grow-2]:
+#     #Set values adjacent to corners to 0.5
+#            if c==2 or c==Gcol-3:
+#                Von=Von+(Q[r,c]/2)
+#                #D[r,c]=0.5;
+#            else:
+#                Von=Von+Q[r,c]
+#                #D[r,c]=1;
+#    
+#    #Perform row summation of outer "Von" node voltages neglecting corners
+#    for r in range(2,Grow-2):
+#        for c in [1,Gcol-2]:
+#    #Set values adjacent to corners to 0.5
+#            if r==2 or r==Grow-3:
+#                Von=Von+(Q[r,c]/2)
+#                #D[r,c]=0.5;
+#            else:
+#                Von=Von+Q[r,c]
+#                #D[r,c]=1;
+#    Vin=0;
+#    #Perform column summation of inner "Vin" node voltages neglecting corners
+#    for c in range(3,Gcol-3):
+#        for r in[2,Grow-3]:
+#    #Set values adjacent to corners to 0.5
+#            if c==3 or c==Gcol-4:
+#                Vin=Vin+(Q[r,c]/2)
+#                #D[r,c]=-0.5;
+#            else:
+#                Vin=Vin+Q[r,c]
+#                #D[r,c]=-1;
+#    #Perform row summation of inner "Vin" node voltages neglecting corners
+#    for r in range(3,Grow-3):
+#        for c in [2,Gcol-3]:
+#    #Set values adjacent to corners to 0.5
+#            if r==3 or r==Grow-4:
+#                Vin=Vin+(Q[r,c]/2)
+#                #D[r,c]=-0.5;
+#            else:
+#                Vin=Vin+Q[r,c]
+#                #D[r,c]=-1;
     #Calculate charge
-    q=E*(Vin-Von);
+    q=E*(Vin-Von)
     #Calculate capacitance
-    C=q/ev;
+    C=q/(ev)
     #Calculate characteristic impedance
     Z0=(np.sqrt(u*E))/C
     #Calculate inductance using a different method to check above value
@@ -186,5 +198,5 @@ def geometry_matrix(geometry,Grow,Gcol,trace_width_cells,trace_spacing_cells):
         G1[np.round((Grow/2))+1,np.round(((Gcol/2))-trace_width_cells-
         (trace_spacing_cells/2)):np.round(((Gcol/2))-(trace_spacing_cells/2))] = -2
         G1[np.round((Grow/2))+1,np.round(((Gcol/2))+(trace_spacing_cells/2)):
-            np.round(((Gcol/2))+trace_width_cells+(trace_spacing_cells/2))] = -2
+            np.round(((Gcol/2))+trace_width_cells+(trace_spacing_cells/2))] = -3
     return G1

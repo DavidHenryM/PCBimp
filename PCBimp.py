@@ -9,7 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import FDM as fdm
 
-resolution = 4
+resolution = 1
 
 #geometry='stripline'
 geometry = 'edge coupled stripline'
@@ -56,7 +56,7 @@ print('Inductance per unit length = %.2f nH')%(L*1e9);
 print('Characteristic Impedance = %.2f Ohms')%(Z0);
 #Display contour plot
 plt.figure(1);
-a=np.r_[0:10.1:0.1]
+a=np.r_[-10:10.1:0.1]
 plt.contourf(Q,a)
 title= geometry+' '+(str(int(nodes)))+' Nodes'
 plt.title(title)
