@@ -119,67 +119,29 @@ def process_matrix(G1,ev):
                 Q[r,c]=v[(G1[r,c])]
     return Q, node, A, v
     
-def trace_values(Q,ev,E,u):
+def trace_values(Q,ev,E,u,vp,Er,c,traces):
     Von=0
     Grow=Q.shape[0]
     Gcol=Q.shape[1]
     
-    Von = np.sum(Q[1,1:(Gcol/2)-1]) + np.sum(Q[Grow-2,1:(Gcol/2)-1]) + np.sum(Q[2:Grow-3,1])
-    + np.sum(Q[2:Grow-3,(Gcol/2)-1]) 
-    Vin = np.sum(Q[2,2:(Gcol/2)-2]) + np.sum(Q[Grow-3,2:(Gcol/2)-2]) + np.sum(Q[3:Grow-4,2]) 
-    + np.sum(Q[3:Grow-4,(Gcol/2)-2]) 
- 
-#   #Perform column summation of outer "Von" node voltages neglecting corners
-#    for c in range(2,Gcol-2):
-#        for r in [1,Grow-2]:
-#     #Set values adjacent to corners to 0.5
-#            if c==2 or c==Gcol-3:
-#                Von=Von+(Q[r,c]/2)
-#                #D[r,c]=0.5;
-#            else:
-#                Von=Von+Q[r,c]
-#                #D[r,c]=1;
-#    
-#    #Perform row summation of outer "Von" node voltages neglecting corners
-#    for r in range(2,Grow-2):
-#        for c in [1,Gcol-2]:
-#    #Set values adjacent to corners to 0.5
-#            if r==2 or r==Grow-3:
-#                Von=Von+(Q[r,c]/2)
-#                #D[r,c]=0.5;
-#            else:
-#                Von=Von+Q[r,c]
-#                #D[r,c]=1;
-#    Vin=0;
-#    #Perform column summation of inner "Vin" node voltages neglecting corners
-#    for c in range(3,Gcol-3):
-#        for r in[2,Grow-3]:
-#    #Set values adjacent to corners to 0.5
-#            if c==3 or c==Gcol-4:
-#                Vin=Vin+(Q[r,c]/2)
-#                #D[r,c]=-0.5;
-#            else:
-#                Vin=Vin+Q[r,c]
-#                #D[r,c]=-1;
-#    #Perform row summation of inner "Vin" node voltages neglecting corners
-#    for r in range(3,Grow-3):
-#        for c in [2,Gcol-3]:
-#    #Set values adjacent to corners to 0.5
-#            if r==3 or r==Grow-4:
-#                Vin=Vin+(Q[r,c]/2)
-#                #D[r,c]=-0.5;
-#            else:
-#                Vin=Vin+Q[r,c]
-#                #D[r,c]=-1;
+
+    if traces == 1:
+       pass 
+    elif traces ==2:
+        Von = np.sum(Q[1,1:(Gcol/2)]) + np.sum(Q[Grow-2,1:(Gcol/2)]) + np.sum(Q[2:Grow-2,1])
+        + np.sum(Q[2:Grow-2,(Gcol/2)-1]) 
+        Vin = np.sum(Q[2,2:(Gcol/2)-1]) + np.sum(Q[Grow-3,2:(Gcol/2)-1]) + np.sum(Q[3:Grow-3,2]) 
+        + np.sum(Q[3:Grow-3,(Gcol/2)-2]) 
     #Calculate charge
     q=E*(Vin-Von)
     #Calculate capacitance
-    C=q/(ev)
+    C=q/(2*ev)    
+    #Calculate inductance
+    L=1/(vp*np.sqrt(C))**2
     #Calculate characteristic impedance
     Z0=(np.sqrt(u*E))/C
-    #Calculate inductance using a different method to check above value
-    L=C*Z0**2
     
+#    Z0 = (np.sqrt(Er))/(c*C)    
     return q,C,Z0,L
     
 def geometry_matrix(geometry,Grow,Gcol,trace_width_cells,trace_spacing_cells):
@@ -191,12 +153,22 @@ def geometry_matrix(geometry,Grow,Gcol,trace_width_cells,trace_spacing_cells):
         G1[Grow-1,:] = -1
         G1[np.round((Grow/2))+1,np.round(((Gcol/2))-
         (trace_width_cells/2)):np.round(((Gcol/2))+(trace_width_cells/2))] = -2
+        traces=1
     elif geometry == 'edge coupled stripline':
         #Populate geometry matrix for conductor and ground
         G1[0,:] = -1
         G1[Grow-1,:] = -1
-        G1[np.round((Grow/2))+1,np.round(((Gcol/2))-trace_width_cells-
+        G1[((Grow-1)/2),np.round(((Gcol/2))-trace_width_cells-
         (trace_spacing_cells/2)):np.round(((Gcol/2))-(trace_spacing_cells/2))] = -2
-        G1[np.round((Grow/2))+1,np.round(((Gcol/2))+(trace_spacing_cells/2)):
+        G1[((Grow-1)/2),np.round(((Gcol/2))+(trace_spacing_cells/2)):
             np.round(((Gcol/2))+trace_width_cells+(trace_spacing_cells/2))] = -3
-    return G1
+        traces=2
+    elif geometry == 'edge coupled microstripline':
+        #Populate geometry matrix for conductor and ground
+        G1[0,:] = -1
+        G1[Grow-1,np.round(((Gcol/2))-trace_width_cells-
+        (trace_spacing_cells/2)):np.round(((Gcol/2))-(trace_spacing_cells/2))] = -2
+        G1[Grow-1,np.round(((Gcol/2))+(trace_spacing_cells/2)):
+            np.round(((Gcol/2))+trace_width_cells+(trace_spacing_cells/2))] = -3
+        traces=2
+    return G1,traces
