@@ -144,7 +144,8 @@ def trace_values(Q,ev,E,u,vp,Er,c,traces):
 #    Z0 = (np.sqrt(Er))/(c*C)    
     return q,C,Z0,L
     
-def geometry_matrix(geometry,Grow,Gcol,trace_width_cells,trace_spacing_cells):
+def geometry_matrix(geometry,Grow,Gcol,trace_width_cells,trace_spacing_cells,
+                    trace_thickness_cells):
     #Initialise geometry matrix
     G1=np.zeros((Grow,Gcol))
     if geometry == 'stripline':
@@ -156,11 +157,16 @@ def geometry_matrix(geometry,Grow,Gcol,trace_width_cells,trace_spacing_cells):
         traces=1
     elif geometry == 'edge coupled stripline':
         #Populate geometry matrix for conductor and ground
+        if np.round(trace_thickness_cells/2)>1:
+            gr1=((Grow-1)/2)-np.round(trace_thickness_cells/2)
+            gr2=((Grow-1)/2)+np.round(trace_thickness_cells/2)
+        else:
+            gr1=((Grow-1)/2)
+            gr2=gr1+1
         G1[0,:] = -1
         G1[Grow-1,:] = -1
-        G1[((Grow-1)/2),np.round(((Gcol/2))-trace_width_cells-
-        (trace_spacing_cells/2)):np.round(((Gcol/2))-(trace_spacing_cells/2))] = -2
-        G1[((Grow-1)/2),np.round(((Gcol/2))+(trace_spacing_cells/2)):
+        G1[gr1:gr2,np.round(((Gcol/2))-trace_width_cells-(trace_spacing_cells/2)):np.round(((Gcol/2))-(trace_spacing_cells/2))] = -2
+        G1[gr1:gr2,np.round(((Gcol/2))+(trace_spacing_cells/2)):
             np.round(((Gcol/2))+trace_width_cells+(trace_spacing_cells/2))] = -3
         traces=2
     elif geometry == 'edge coupled microstripline':
